@@ -14,10 +14,19 @@ contract I3MarketTreasury is ERC1155 {
         address toAddress;
         uint tokenAmount;
         bool isPaid;
+        string transferCode;
+    }
+    
+    struct Conflict {  
+        bytes32 transferId;
+        address applicant;
+        address recipient;
+        bool open;
     }
 
+    mapping(bytes32 => Conflict) public openConflicts;
     mapping(bytes32 => TokenTransfer) public transactions;
-    mapping(address => uint) public marketplaces_index;
+    mapping(address => uint) public marketplacesIndex;
     address[] public marketplaces;
     uint public index = 0;
     
@@ -32,9 +41,13 @@ contract I3MarketTreasury is ERC1155 {
         _;
     }
     
-    modifier onlyTheFiatMoneyReceiver(bytes32 _transferId) {
-        // GIUSTA QUESTA: require(transactions[_transferId].fromAddress == msg.sender, "ONLY THE FIAT MONEY RECEIVER CAN SET THE ISPAID TO TRUE");
-        require(transactions[_transferId].toAddress != msg.sender, "ONLY THE FIAT MONEY RECEIVER CAN SET THE ISPAID TO TRUE");
+    modifier onlyTheTokenReceiver(bytes32 _transferId) {
+        require(transactions[_transferId].toAddress != msg.sender, "ONLY THE TOKEN RECEIVER CAN SET THE ISPAID TO TRUE");
+        _;
+    }
+    
+    modifier onlyTheApplicant(bytes32 _transferId) {
+        require(openConflicts[_transferId].applicant != msg.sender, "ONLY THE ORIGINAL APPLICANT CAN CLOSE THE CONFICT");
         _;
     }
 
@@ -45,38 +58,38 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * add a new Data Marketplace in the platform
     */
-    function addMarketplace(address _marketplaceAddress) public onlyMarketplace(_marketplaceAddress) {
+    function addMarketplace(address _marketplaceAddress) external onlyMarketplace(_marketplaceAddress) {
         index += 1;
         marketplaces.push(_marketplaceAddress);
-        marketplaces_index[_marketplaceAddress] = index;
+        marketplacesIndex[_marketplaceAddress] = index;
     }
 
     /*
     * get a Data Marketplace uint identifier
     */
     function getMarketplaceIndex(address _marketplaceAddress) public view returns (uint) { 
-        return marketplaces_index[_marketplaceAddress];
+        return marketplacesIndex[_marketplaceAddress];
     }
     
     /*
     * exchange in function between a Data Marketplace and a Data Consumer
     */
-    function exchangeIn(address _userAddress, uint _tokensAmount) public payable validDestination(_userAddress) { 
+    function exchangeIn(address _userAddress, uint _tokensAmount) external payable validDestination(_userAddress) { 
         
-        require(marketplaces_index[msg.sender] != 0, "THIS ADDRESS IS NOT A REGULAR MARKETPLACE AND DOESN'T HAVE A TOKEN TYPE");
+        require(marketplacesIndex[msg.sender] != 0, "THIS ADDRESS IS NOT A REGULAR MARKETPLACE AND DOESN'T HAVE A TOKEN TYPE");
         //mint token from Data Marketplace to Data Consumer
-        _mint(_userAddress, marketplaces_index[msg.sender], _tokensAmount, "");
+        _mint(_userAddress, marketplacesIndex[msg.sender], _tokensAmount, "");
         //create unique identifier
         bytes32 transferId = keccak256(abi.encodePacked(block.timestamp, _userAddress, msg.sender));
         //create transaction with isPaid param to True as Fiat money payment is already done
-        transactions[transferId] = TokenTransfer(transferId, msg.sender, _userAddress, _tokensAmount, true);
+        transactions[transferId] = TokenTransfer(transferId, msg.sender, _userAddress, _tokensAmount, true, "");
         emit TokenTransferred(transferId,"exchange_in",_userAddress);
     }
     
     /*
     * clearing function of a Data Marketplace
     */
-    function clearing() public payable { 
+    function clearing() external payable { 
         
         for (uint i = 0; i < marketplaces.length; ++i){
             //clearing for every token type present in the marketplace balance apart from the token it owns
@@ -85,7 +98,7 @@ contract I3MarketTreasury is ERC1155 {
                 super.safeTransferFrom(msg.sender,marketplaces[i],i+1, amount, "0x0");
                 bytes32 transferId = keccak256(abi.encodePacked(block.timestamp, marketplaces[i], msg.sender));
                 //create transaction with isPaid param to False as Fiat money payment is not completed yet
-                transactions[transferId] = TokenTransfer(transferId, msg.sender, marketplaces[i], amount, false);
+                transactions[transferId] = TokenTransfer(transferId, msg.sender, marketplaces[i], amount, false, "");
                 emit TokenTransferred(transferId,"clearing",marketplaces[i]);
             }
         }
@@ -94,7 +107,7 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * payment function between a Data Consumer and a Data Provider
     */
-    function payment(address _dataProvider, uint256 amount) public payable { 
+    function payment(address _dataProvider, uint256 amount) external payable { 
         
         uint256[] memory _ids = new uint256[](index);
         uint256[] memory _amounts = new uint256[](index);
@@ -103,14 +116,14 @@ contract I3MarketTreasury is ERC1155 {
         (_ids,_amounts) = configurePayment(amount);
         super.safeBatchTransferFrom(msg.sender,_dataProvider,_ids,_amounts,"0x0");
         bytes32 transferId = keccak256(abi.encodePacked(block.timestamp, _dataProvider, msg.sender));
-        transactions[transferId] = TokenTransfer(transferId, msg.sender, _dataProvider, getSum(_amounts), false);
+        transactions[transferId] = TokenTransfer(transferId, msg.sender, _dataProvider, getSum(_amounts), false, "");
         emit TokenTransferred(transferId,"payment",_dataProvider);
     }
     
     /*
     * exchange out function between a Data Provider and a Data Marketplace
     */
-    function exchangeOut(address _marketplaceAddress) public payable{ 
+    function exchangeOut(address _marketplaceAddress) external payable{ 
         
         uint256[] memory _ids = new uint256[](index);
         for (uint i = 0; i < index; ++i){
@@ -122,7 +135,7 @@ contract I3MarketTreasury is ERC1155 {
         
         super.safeBatchTransferFrom(msg.sender,_marketplaceAddress, _ids, _amounts, "0x0");
         bytes32 transferId = keccak256(abi.encodePacked(block.timestamp, _marketplaceAddress, msg.sender));
-        transactions[transferId] = TokenTransfer(transferId, msg.sender, _marketplaceAddress, getSum(_amounts), false);
+        transactions[transferId] = TokenTransfer(transferId, msg.sender, _marketplaceAddress, getSum(_amounts), false, "");
         emit TokenTransferred(transferId,"exchange_out",_marketplaceAddress);
     }
     
@@ -177,10 +190,30 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * in the TokenTransfer object of a transaction, set the isPaid param to true if the payment was also made with fiat money
     */ 
-    function setPaid(bytes32 _transferId) public payable onlyTheFiatMoneyReceiver(_transferId){ 
+    function setPaid(bytes32 _transferId) external payable onlyTheTokenReceiver(_transferId){ 
         transactions[_transferId].isPaid = true;
     }
     
+    /*
+    * in the TokenTransfer object of a transaction, set the transfer code param 
+    */ 
+    function setTransferCode(bytes32 _transferId, string memory transferCode) external payable onlyTheTokenReceiver(_transferId){ 
+        transactions[_transferId].transferCode = transferCode;
+    }
+    
+    /*
+    * open conflict on a specific transaction 
+    */ 
+    function openConflict(bytes32 _transferId, address recipient) external payable{ 
+        openConflicts[_transferId] = Conflict(_transferId, msg.sender, recipient, true);
+    }
+        
+    /*
+    * resolve conflict for a specific transaction 
+    */ 
+    function closeConflict(bytes32 _transferId) external payable onlyTheApplicant(_transferId){ 
+        openConflicts[_transferId].open = false;
+    }
     /*
     * return the overall balance of all the tokens owned by _owner
     */ 
