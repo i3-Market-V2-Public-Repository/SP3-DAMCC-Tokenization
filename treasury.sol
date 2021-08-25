@@ -50,8 +50,13 @@ contract I3MarketTreasury is ERC1155 {
         require(openConflicts[_transferId].applicant != msg.sender, "ONLY THE ORIGINAL APPLICANT CAN CLOSE THE CONFICT");
         _;
     }
-
     
+    modifier onlyPartiesOfTransaction(bytes32 _transferId, address recipient) {
+        require(msg.sender == transactions[_transferId].toAddress || msg.sender == transactions[_transferId].fromAddress, "THE CONFLICT APPLICANT MUST BE ONE OF THE TRANSACTION PARTIES");
+        require(recipient == transactions[_transferId].toAddress || recipient == transactions[_transferId].fromAddress, "THE CONFLICT RECIPIENT MUST BE ONE OF THE TRANSACTION PARTIES");
+        _;
+    }
+
     constructor() ERC1155("https://i3market.com/marketplace/{id}.json") {
     }
     
@@ -204,7 +209,7 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * open conflict on a specific transaction 
     */ 
-    function openConflict(bytes32 _transferId, address recipient) external payable{ 
+    function openConflict(bytes32 _transferId, address recipient) external payable onlyPartiesOfTransaction(_transferId, recipient){ 
         openConflicts[_transferId] = Conflict(_transferId, msg.sender, recipient, true);
     }
         
