@@ -40,14 +40,14 @@ contract I3MarketTreasury is ERC1155 {
         require(msg.sender != _to, "MARKETPLACE CANNOT MINT TO ITSELF");
         _;
     }
-    
+
     modifier onlyTheTokenReceiver(bytes32 _transferId) {
-        require(transactions[_transferId].toAddress != msg.sender, "ONLY THE TOKEN RECEIVER CAN SET THE ISPAID TO TRUE");
+        require(transactions[_transferId].toAddress == msg.sender, "ONLY THE TOKEN RECEIVER CAN SET THE ISPAID TO TRUE");
         _;
     }
     
     modifier onlyTheApplicant(bytes32 _transferId) {
-        require(openConflicts[_transferId].applicant != msg.sender, "ONLY THE ORIGINAL APPLICANT CAN CLOSE THE CONFICT");
+        require(openConflicts[_transferId].applicant == msg.sender, "ONLY THE ORIGINAL APPLICANT CAN CLOSE THE CONFICT");
         _;
     }
     
@@ -109,7 +109,11 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * payment function between a Data Consumer and a Data Provider
     */
+<<<<<<< HEAD:treasury.sol
     function payment(string transferId, address _dataProvider, uint256 amount) external payable { 
+=======
+    function payment(address _dataProvider, uint256 amount) external payable {
+>>>>>>> 7e7bc12b5b677cf380f208ac8c20b72c5d4cec78:contracts/Treasury.sol
         
         uint256[] memory _ids = new uint256[](index);
         uint256[] memory _amounts = new uint256[](index);
