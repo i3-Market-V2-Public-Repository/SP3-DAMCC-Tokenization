@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 contract I3MarketTreasury is ERC1155 {
     
-    event TokenTransferred(bytes32 transferId, string operation, address _sender);
+    event TokenTransferred(string transferId, string operation, address _sender);
     event LogD(uint256 log);
     
     struct TokenTransfer {  
-        bytes32 transferId;
+        string transferId;
         address fromAddress;
         address toAddress;
         uint tokenAmount;
@@ -18,14 +18,14 @@ contract I3MarketTreasury is ERC1155 {
     }
     
     struct Conflict {  
-        bytes32 transferId;
+        string transferId;
         address applicant;
         address recipient;
         bool open;
     }
 
-    mapping(bytes32 => Conflict) public openConflicts;
-    mapping(bytes32 => TokenTransfer) public transactions;
+    mapping(string => Conflict) public openConflicts;
+    mapping(string => TokenTransfer) public transactions;
     mapping(address => uint) public marketplacesIndex;
     address[] public marketplaces;
     uint public index = 0;
@@ -41,17 +41,17 @@ contract I3MarketTreasury is ERC1155 {
         _;
     }
 
-    modifier onlyTheTokenReceiver(bytes32 _transferId) {
+    modifier onlyTheTokenReceiver(string memory _transferId) {
         require(transactions[_transferId].toAddress == msg.sender, "ONLY THE TOKEN RECEIVER CAN SET THE ISPAID TO TRUE");
         _;
     }
     
-    modifier onlyTheApplicant(bytes32 _transferId) {
+    modifier onlyTheApplicant(string memory _transferId) {
         require(openConflicts[_transferId].applicant == msg.sender, "ONLY THE ORIGINAL APPLICANT CAN CLOSE THE CONFICT");
         _;
     }
     
-    modifier onlyPartiesOfTransaction(bytes32 _transferId, address recipient) {
+    modifier onlyPartiesOfTransaction(string memory _transferId, address recipient) {
         require(msg.sender == transactions[_transferId].toAddress || msg.sender == transactions[_transferId].fromAddress, "THE CONFLICT APPLICANT MUST BE ONE OF THE TRANSACTION PARTIES");
         require(recipient == transactions[_transferId].toAddress || recipient == transactions[_transferId].fromAddress, "THE CONFLICT RECIPIENT MUST BE ONE OF THE TRANSACTION PARTIES");
         _;
@@ -79,7 +79,7 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * exchange in function between a Data Marketplace and a Data Consumer
     */
-    function exchangeIn(string transferId, address _userAddress, uint _tokensAmount) external payable validDestination(_userAddress) { 
+    function exchangeIn(string memory transferId, address _userAddress, uint _tokensAmount) external payable validDestination(_userAddress) { 
         
         require(marketplacesIndex[msg.sender] != 0, "THIS ADDRESS IS NOT A REGULAR MARKETPLACE AND DOESN'T HAVE A TOKEN TYPE");
         //mint token from Data Marketplace to Data Consumer
@@ -92,7 +92,7 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * clearing function of a Data Marketplace
     */
-    function clearing(string transferId) external payable { 
+    function clearing(string memory transferId) external payable { 
         
         for (uint i = 0; i < marketplaces.length; ++i){
             //clearing for every token type present in the marketplace balance apart from the token it owns
@@ -109,11 +109,7 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * payment function between a Data Consumer and a Data Provider
     */
-<<<<<<< HEAD:treasury.sol
-    function payment(string transferId, address _dataProvider, uint256 amount) external payable { 
-=======
-    function payment(address _dataProvider, uint256 amount) external payable {
->>>>>>> 7e7bc12b5b677cf380f208ac8c20b72c5d4cec78:contracts/Treasury.sol
+    function payment(string memory transferId, address _dataProvider, uint256 amount) external payable { 
         
         uint256[] memory _ids = new uint256[](index);
         uint256[] memory _amounts = new uint256[](index);
@@ -128,7 +124,7 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * exchange out function between a Data Provider and a Data Marketplace
     */
-    function exchangeOut(string transferId, address _marketplaceAddress) external payable{ 
+    function exchangeOut(string memory transferId, address _marketplaceAddress) external payable{ 
         
         uint256[] memory _ids = new uint256[](index);
         for (uint i = 0; i < index; ++i){
@@ -146,7 +142,7 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * Returns the TokenTransfer informations associated with the _transferId identifier
     */
-    function getTransaction(bytes32 _transferId) public view returns (TokenTransfer memory tokenTransfer) { 
+    function getTransaction(string memory _transferId) public view returns (TokenTransfer memory tokenTransfer) { 
         return transactions[_transferId];
     }
     
@@ -194,28 +190,28 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * in the TokenTransfer object of a transaction, set the isPaid param to true if the payment was also made with fiat money
     */ 
-    function setPaid(bytes32 _transferId) external payable onlyTheTokenReceiver(_transferId){ 
+    function setPaid(string memory _transferId) external payable onlyTheTokenReceiver(_transferId){ 
         transactions[_transferId].isPaid = true;
     }
     
     /*
     * in the TokenTransfer object of a transaction, set the transfer code param 
     */ 
-    function setTransferCode(bytes32 _transferId, string memory transferCode) external payable onlyTheTokenReceiver(_transferId){ 
+    function setTransferCode(string memory _transferId, string memory transferCode) external payable onlyTheTokenReceiver(_transferId){ 
         transactions[_transferId].transferCode = transferCode;
     }
     
     /*
     * open conflict on a specific transaction 
     */ 
-    function openConflict(bytes32 _transferId, address recipient) external payable onlyPartiesOfTransaction(_transferId, recipient){ 
+    function openConflict(string memory _transferId, address recipient) external payable onlyPartiesOfTransaction(_transferId, recipient){ 
         openConflicts[_transferId] = Conflict(_transferId, msg.sender, recipient, true);
     }
         
     /*
     * resolve conflict for a specific transaction 
     */ 
-    function closeConflict(bytes32 _transferId) external payable onlyTheApplicant(_transferId){ 
+    function closeConflict(string memory _transferId) external payable onlyTheApplicant(_transferId){ 
         openConflicts[_transferId].open = false;
     }
     
