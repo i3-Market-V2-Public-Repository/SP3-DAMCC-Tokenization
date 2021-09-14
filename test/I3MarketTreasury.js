@@ -32,8 +32,20 @@ contract('I3MarketTreasury', async accounts => {
         treasury = await I3MarketTreasury.new();
     });
 
-    it("Given a different sender marketplace address when call addMarketplace return a revert exception", async () => {
+    it("Given a marketplace when try to add it twice return a revert event", async () => {
+        try {
+            await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
+            await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
+            assert.fail('An Revert exception must be raised');
+        } catch (e) {
+            assert.strictEqual(
+                'Returned error: VM Exception while processing transaction: revert MARKETPLACE WAS ALREADY ADDED -- Reason given: MARKETPLACE WAS ALREADY ADDED.',
+                e.message
+            );
+        }
+    });
 
+    it("Given a different sender marketplace address when call addMarketplace return a revert event", async () => {
         try {
             await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
             assert.fail('An Revert exception must be raised');
@@ -84,12 +96,12 @@ contract('I3MarketTreasury', async accounts => {
     it("Given a marketplace address when it is added twice return the same index", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         const firstIndex = await treasury.getMarketplaceIndex(MARKETPLACE_1_ADDRESS);
-
-        await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const secondIndex = await treasury.getMarketplaceIndex(MARKETPLACE_1_ADDRESS);
-
-        console.log("1 → " + firstIndex + " 2 → " + secondIndex);
-        assert.strictEqual(firstIndex.toNumber(), secondIndex.toNumber());
+        try {
+            await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
+        } catch (e) {
+            const secondIndex = await treasury.getMarketplaceIndex(MARKETPLACE_1_ADDRESS);
+            assert.strictEqual(firstIndex.toNumber(), secondIndex.toNumber());
+        }
     });
 
 
@@ -351,9 +363,6 @@ contract('I3MarketTreasury', async accounts => {
         );
     });
 
-    it('Given a non existing transfer id when call setPaid then generates new transfers ids', function () {
-
-    });
 
     it('Given a transfer id when a user that is NOT the token receiver call set paid emit a revert event', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
