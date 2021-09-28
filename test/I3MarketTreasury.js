@@ -107,7 +107,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it("Given a user address when a NON added marketplace exchange in tokens then Raise an error", async () => {
         try {
-            await treasury.exchangeIn(USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
+            await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
             assert.fail('An Revert exception must be raised');
         } catch (e) {
             assert.strictEqual(
@@ -120,7 +120,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it("Given a user address when a marketplace exchange in tokens then emit the event", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
 
         const tokenTransferredEvent = result.logs[result.logs.length - 1];
         const event = tokenTransferredEvent.event;
@@ -135,7 +135,7 @@ contract('I3MarketTreasury', async accounts => {
     it("Given a marketplace address when a marketplace exchange in token to itself return a revert error event", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         try {
-            await treasury.exchangeIn(MARKETPLACE_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
+            await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
             assert.fail("An Revert exception must be raised");
         } catch (e) {
             assert.strictEqual('Returned error: VM Exception while processing transaction: revert MARKETPLACE CANNOT MINT TO ITSELF -- Reason given: MARKETPLACE CANNOT MINT TO ITSELF.', e.message)
@@ -149,7 +149,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it("Given a user with one marketplace balance when call balance of returns an array with the balance", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
 
         const balances = await treasury.balanceOfAddress(USER_1_ADDRESS);
 
@@ -162,10 +162,10 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_4_ADDRESS, {from: MARKETPLACE_4_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_6_ADDRESS, {from: MARKETPLACE_6_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 101, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 102, {from: MARKETPLACE_4_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 103, {from: MARKETPLACE_6_ADDRESS});
+        await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 101, {from: MARKETPLACE_2_ADDRESS});
+        await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 102, {from: MARKETPLACE_4_ADDRESS});
+        await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 103, {from: MARKETPLACE_6_ADDRESS});
 
         const balances = await treasury.balanceOfAddress(USER_1_ADDRESS);
 
@@ -178,11 +178,11 @@ contract('I3MarketTreasury', async accounts => {
 
     it("Given a user that has been added balance many times when call balance of, returns the correct amount", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 101, {from: MARKETPLACE_1_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 102, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 101, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 102, {from: MARKETPLACE_1_ADDRESS});
 
-        await treasury.exchangeIn(USER_1_ADDRESS, 103, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 103, {from: MARKETPLACE_1_ADDRESS});
         const balances = await treasury.balanceOfAddress(USER_1_ADDRESS);
 
         assert.strictEqual(balances[0].toNumber(), 406);
@@ -194,9 +194,9 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_3_ADDRESS, {from: MARKETPLACE_3_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_4_ADDRESS, {from: MARKETPLACE_4_ADDRESS});
-        await treasury.exchangeIn(MARKETPLACE_1_ADDRESS, 2, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn(MARKETPLACE_1_ADDRESS, 3, {from: MARKETPLACE_3_ADDRESS});
-        await treasury.exchangeIn(MARKETPLACE_1_ADDRESS, 4, {from: MARKETPLACE_4_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 2, {from: MARKETPLACE_2_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 3, {from: MARKETPLACE_3_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 4, {from: MARKETPLACE_4_ADDRESS});
 
         await treasury.clearing({from: MARKETPLACE_1_ADDRESS})
         const balanceMP1 = await treasury.balanceOfAddress(MARKETPLACE_1_ADDRESS);
@@ -216,9 +216,9 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_3_ADDRESS, {from: MARKETPLACE_3_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_4_ADDRESS, {from: MARKETPLACE_4_ADDRESS});
-        await treasury.exchangeIn(MARKETPLACE_1_ADDRESS, 2, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn(MARKETPLACE_1_ADDRESS, 3, {from: MARKETPLACE_3_ADDRESS});
-        await treasury.exchangeIn(MARKETPLACE_1_ADDRESS, 4, {from: MARKETPLACE_4_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 2, {from: MARKETPLACE_2_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 3, {from: MARKETPLACE_3_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 4, {from: MARKETPLACE_4_ADDRESS});
 
         const result = await treasury.clearing({from: MARKETPLACE_1_ADDRESS});
 
@@ -231,7 +231,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it("Given a data consumer with NO tokens when call payment emit revert event", async () => {
         try {
-            await treasury.payment(USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
+            await treasury.payment('dummyTransferId', USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
         } catch (e) {
             assert.strictEqual(
                 'Returned error: VM Exception while processing transaction: revert THE DATA CONSUMER DOESN\'T HAVE ENOUGH TOKENS -- Reason given: THE DATA CONSUMER DOESN\'T HAVE ENOUGH TOKENS.',
@@ -242,10 +242,10 @@ contract('I3MarketTreasury', async accounts => {
 
     it("Given a data consumer with NO enough tokens when call payment emit revert event", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
 
         try {
-            await treasury.payment(USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
+            await treasury.payment('dummyTransferId', USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
         } catch (e) {
             assert.strictEqual(
                 'Returned error: VM Exception while processing transaction: revert THE DATA CONSUMER DOESN\'T HAVE ENOUGH TOKENS -- Reason given: THE DATA CONSUMER DOESN\'T HAVE ENOUGH TOKENS.',
@@ -261,13 +261,13 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.addMarketplace(MARKETPLACE_3_ADDRESS, {from: MARKETPLACE_3_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_4_ADDRESS, {from: MARKETPLACE_4_ADDRESS});
 
-        await treasury.exchangeIn(USER_1_ADDRESS, 1, {from: MARKETPLACE_1_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 2, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 3, {from: MARKETPLACE_3_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 4, {from: MARKETPLACE_4_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 1, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 2, {from: MARKETPLACE_2_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 3, {from: MARKETPLACE_3_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 4, {from: MARKETPLACE_4_ADDRESS});
 
         try {
-            await treasury.payment(USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
+            await treasury.payment('dummyTransferId', USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
         } catch (e) {
             assert.strictEqual(
                 'Returned error: VM Exception while processing transaction: revert THE DATA CONSUMER DOESN\'T HAVE ENOUGH TOKENS -- Reason given: THE DATA CONSUMER DOESN\'T HAVE ENOUGH TOKENS.',
@@ -283,12 +283,12 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_3_ADDRESS, {from: MARKETPLACE_3_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_4_ADDRESS, {from: MARKETPLACE_4_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 5, {from: MARKETPLACE_1_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 5, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 5, {from: MARKETPLACE_3_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 5, {from: MARKETPLACE_4_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 5, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 5, {from: MARKETPLACE_2_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 5, {from: MARKETPLACE_3_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 5, {from: MARKETPLACE_4_ADDRESS});
 
-        const result = await treasury.payment(USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
+        const result = await treasury.payment('dummyTransferId', USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
 
         const paymentEvent = helper.getEvents(result, "TokenTransferred");
         helper.assertTokenTransfered(paymentEvent[0], "payment", USER_2_ADDRESS);
@@ -301,12 +301,12 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_3_ADDRESS, {from: MARKETPLACE_3_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_4_ADDRESS, {from: MARKETPLACE_4_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 8, {from: MARKETPLACE_1_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 9, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 7, {from: MARKETPLACE_3_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 5, {from: MARKETPLACE_4_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 8, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 9, {from: MARKETPLACE_2_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 7, {from: MARKETPLACE_3_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 5, {from: MARKETPLACE_4_ADDRESS});
 
-        await treasury.payment(USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
+        await treasury.payment('dummyTransferId', USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
 
         const consumerBalance = await treasury.balanceOfAddress(USER_1_ADDRESS);
         const providerBalance = await treasury.balanceOfAddress(USER_2_ADDRESS);
@@ -318,7 +318,7 @@ contract('I3MarketTreasury', async accounts => {
     it("Given a data provider with many tokens when call exchange out then emit exchange_out event", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
 
-        const result = await treasury.exchangeOut(MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
+        const result = await treasury.exchangeOut('dummyTransferId', MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
 
         const exchangeOutEvent = helper.getEvents(result, "TokenTransferred");
         helper.assertTokenTransfered(exchangeOutEvent[0], "exchange_out", MARKETPLACE_1_ADDRESS);
@@ -329,12 +329,12 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_3_ADDRESS, {from: MARKETPLACE_3_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_4_ADDRESS, {from: MARKETPLACE_4_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 8, {from: MARKETPLACE_1_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 9, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 7, {from: MARKETPLACE_3_ADDRESS});
-        await treasury.exchangeIn(USER_1_ADDRESS, 5, {from: MARKETPLACE_4_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 8, {from: MARKETPLACE_1_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 9, {from: MARKETPLACE_2_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 7, {from: MARKETPLACE_3_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 5, {from: MARKETPLACE_4_ADDRESS});
 
-        await treasury.exchangeOut(MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
+        await treasury.exchangeOut('dummyTransferId', MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
 
         const providerBalance = await treasury.balanceOfAddress(USER_1_ADDRESS);
         const marketplaceBalance = await treasury.balanceOfAddress(MARKETPLACE_1_ADDRESS);
@@ -345,7 +345,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it("Given a function that generates a transaction when call get transaction then return the token transfer information", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeOut(MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
+        const result = await treasury.exchangeOut('dummyTransferId', MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
         const exchangeOutEvents = helper.getEvents(result, "TokenTransferred");
 
         const transaction = await treasury.getTransaction(exchangeOutEvents[0].args.transferId);
@@ -366,7 +366,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it('Given a transfer id when a user that is NOT the token receiver call set paid emit a revert event', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
 
         try {
@@ -383,7 +383,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it('Given a transfer id when a user that is the token receiver call set paid change isPaid to true', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
 
         await treasury.setPaid(exchangeInEvents[0].args.transferId, {from: USER_1_ADDRESS});
@@ -427,7 +427,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it('Given a transfer id and a transfer code when a NON RECEIVER USER call setTransferCode then raise a revert', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
         try {
             await treasury.setTransferCode(exchangeInEvents[0].args.transferId, "Dummy transfer code", {from: MARKETPLACE_1_ADDRESS});
@@ -443,7 +443,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it('Given a transfer id and a transfer code when RECEIVER USER call setTransferCode then set the transfer code', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
         const transactionId = exchangeInEvents[0].args.transferId
 
@@ -455,7 +455,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it('Given a transfer id and a recipient when a NONE PARTIES are in the transaction and call of open conflict emit a revert event', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
 
         try {
@@ -472,7 +472,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it('Given a transfer id and a recipient when the RECIPIENT IS NOT in the transaction and call of open conflict emit a revert event', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
 
         try {
@@ -489,7 +489,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it('Given a transfer id and a recipient when the APPLICANT IS NOT in the transaction and call of open conflict emit a revert event', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
 
         try {
@@ -506,7 +506,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it('Given a transfer id and a recipient when the APPLICANT is the sender in the transaction and call of open conflict the conflict should be opened', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
         const transferId = exchangeInEvents[0].args.transferId;
 
@@ -521,7 +521,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it('Given a transfer id and a recipient when the APPLICANT is the receiver in the transaction and call of open conflict the conflict should be opened', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
         const transferId = exchangeInEvents[0].args.transferId;
 
@@ -537,7 +537,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it("Given an open conflict when a NON party USER call close conflict then raise a revert", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
         const transferId = exchangeInEvents[0].args.transferId;
         await treasury.openConflict(transferId, MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
@@ -556,7 +556,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it("Given an open conflict when the RECIPIENT USER call close conflict then raise a revert", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
         const transferId = exchangeInEvents[0].args.transferId;
         await treasury.openConflict(transferId, MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
@@ -575,7 +575,7 @@ contract('I3MarketTreasury', async accounts => {
 
     it("Given an open conflict when the APPLICANT USER call close conflict then close the conflict", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn(USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
+        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
         const transferId = exchangeInEvents[0].args.transferId;
         await treasury.openConflict(transferId, MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
