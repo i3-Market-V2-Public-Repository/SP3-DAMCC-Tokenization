@@ -1,3 +1,19 @@
+/**
+* Copyright (c) 2020-2022 in alphabetical order:
+* GFT, HOPU
+*
+* This program and the accompanying materials are made
+* available under the terms of the EUROPEAN UNION PUBLIC LICENCE v. 1.2
+* which is available at https://gitlab.com/i3-market/code/wp3/t3.3/tokenization/-/blob/main/LICENSE
+*
+* License-Identifier: Apache 2.0
+*
+* Contributors:
+*    Luca Marangoni (GFT)
+*    German Molina Carrasco (HOPU)
+*
+*/
+
 pragma solidity >=0.7.0 <0.9.0;
 pragma abicoder v2;
 
