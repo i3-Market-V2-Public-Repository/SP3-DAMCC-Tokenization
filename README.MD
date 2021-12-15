@@ -99,7 +99,7 @@ The public methods exposed by the Treasury smart contact are:
 | setTransferCode | Transaction |  transferId | In the TokenTransfer object of a transaction, set the transfer code param  |
 | openConflict | Transaction |  transferId | Open conflict on a specific transaction  |
 | closeConflict | Transaction |  transferId | Resolve conflict for a specific transaction |
-| balanceOfAddress | Call |  transferId | Return the overall balance of all the tokens owned by _owner |
+| balanceOfAddress | Call |  transferId | Return the overall balance of all the tokens owned by owner |
 
 ## How to build and deploy
 
