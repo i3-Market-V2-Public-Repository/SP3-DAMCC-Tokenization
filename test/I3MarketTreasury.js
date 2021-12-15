@@ -254,7 +254,7 @@ contract('I3MarketTreasury', async accounts => {
         }
     });
 
-    // WARNING, SEE README point 3
+
     it("Given a data consumer with NO enough tokens in all token wallets when call payment emit the rever event", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
@@ -277,7 +277,6 @@ contract('I3MarketTreasury', async accounts => {
     });
 
 
-    // WARNING, SEE README point 3
     it("Given a data consumer with enough tokens in all token wallets when call payment emit payment event", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
@@ -295,7 +294,6 @@ contract('I3MarketTreasury', async accounts => {
     });
 
 
-    // WARNING, SEE README point 3
     it("Given a data consumer with enough tokens in all token wallets when call payment consumer and provider wallets have the correct amount of tokens", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
