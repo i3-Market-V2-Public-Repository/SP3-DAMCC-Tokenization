@@ -9,7 +9,97 @@ The Treasury smart contract is used to represent multiple marketplaces tokens at
 
 ## Getting started
 
-Just read this README using any plain text editor.
+Users have to deploy an instance of the Treasury smart contract to interact with the functions defined inside it. 
+The instructions of how to deploy it in a development environment is described in the section [How to build and deploy](##how-to-build-and-deploy)
+
+In this section is assumed that al the commands are running using truffle on develop chain:
+
+Start the chain:
+
+Run truffle develop chain.
+```shell
+$ truffle develop
+```
+
+Compile and deploy the Treasury smart contract in develop network.
+```shell
+truffle(develop)> migrate
+```
+
+Getting addresses of the wallet. 
+```shell
+let accounts = await web3.eth.getAccounts()
+let FROM_ADDRESS = accounts[0]
+```
+
+Getting a Treasury smart contract instance.
+```shell
+truffle(develop)> let instance = await I3MarketTreasury.deployed()
+```
+
+Execute methods
+There is two ways for executing methods:  
+
+- **Transactions**: Change the status of the network, the are executed in an asynchronous way and only return a 
+transaction id.  
+  ```shell
+  truffle(develop)> var result = instance.addMarketplace(FROM_ADDRESS, {'from': FROM_ADDRESS})
+  ```
+  result content:
+  ```javascript
+  { 
+    tx: '0xbb1d245eb694a875c298ba9c386c114f62cca6296ed08b554fa3e19c280602c0',
+    receipt: { 
+      transactionHash: '0xbb1d245eb694a875c298ba9c386c114f62cca6296ed08b554fa3e19c280602c0',
+      transactionIndex: 0,
+      blockHash: '0x854f2fe8fbcad1ddca30eed669d3ccf912447e697342bbe3b11950ae0cdd1050',
+      blockNumber: 5,
+      from: '0xd1433f7f80ec5801efa9a0e4779e178b302d09ba',
+      to: '0x3fc8ddf8396bb2fdb1df064e77a9b6b1a50a6fbb',
+      gasUsed: 106593,
+      cumulativeGasUsed: 106593,
+      contractAddress: null,
+      logs: [],
+      status: true,
+      logsBloom: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
+      rawLogs: [] 
+    },
+    logs: [] 
+  }
+  ```
+- **Calls**: They execute code that do not change the status of the network, they are free and receive the return 
+value immediately.  
+  Example:
+  ```shell
+  truffle(develop)> var marketplaceIndex = await instance.getMarketplaceIndex(FROM_ADDRESS, {'from': FROM_ADDRESS})
+  truffle(develop)> marketplaceIndex.toNumber()
+  ```  
+  marketplaceIndex content:
+  ```javascript
+  1
+  ```
+  
+For more information about how to use the truffle interface please see the official truffle 
+[README](https://github.com/trufflesuite/truffle/tree/master/packages/contract).
+
+The public methods exposed by the Treasury smart contact are:
+
+| Method | Type | Parameters | Description |
+|--------|------|------------|-------------|
+| addMarketplace | Transaction | marketplaceAddress | Add a new marketplace to the system |
+| getMarketplaceIndex | Call | marketplaceAddress | Get a Data Marketplace uint identifier            |
+| exchangeIn | Transaction | transferId, userAddress, tokensAmount | Exchange in function between a Data Marketplace and a Data Consumer |
+| clearing | Transaction | transferId | Clearing function of a Data Marketplace |
+| payment | Transaction |  transferId, dataProvider, amount | Payment between a Data Consumer and a Data Provider |
+| exchangeOut | Transaction |  transferId, marketplaceAddress | Exchange out function between a Data Provider and a Data Marketplace |
+| getTransaction | Call |  transferId | Returns the TokenTransfer information associated with the transferId identifier |
+| configurePayment | Transaction |  amount | Returns a pair with the token ids and the respective amounts to cover the amount required for payment. Tokens are taken starting from the first token type until the sum is reached  |
+| getSum | Call |  amounts | Returns the sum of the elements in an array |
+| setPaid | Transaction |  transferId | In the TokenTransfer object of a transaction, set the isPaid param to true if the payment was also made with fiat money |
+| setTransferCode | Transaction |  transferId | In the TokenTransfer object of a transaction, set the transfer code param  |
+| openConflict | Transaction |  transferId | Open conflict on a specific transaction  |
+| closeConflict | Transaction |  transferId | Resolve conflict for a specific transaction |
+| balanceOfAddress | Call |  transferId | Return the overall balance of all the tokens owned by _owner |
 
 ## How to build and deploy
 
@@ -58,6 +148,7 @@ Installing node
 ```shell
 $ nvm install lts/gallium
 ```
+
 
 #### Installing Truffle
 
