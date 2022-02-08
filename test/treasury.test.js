@@ -39,8 +39,8 @@ contract('I3MarketTreasury', async accounts => {
             assert.fail('An Revert exception must be raised');
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert MARKETPLACE WAS ALREADY ADDED -- Reason given: MARKETPLACE WAS ALREADY ADDED.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert MP ALREADY ADDED -- Reason given: MP ALREADY ADDED.',
             );
         }
     });
@@ -51,8 +51,8 @@ contract('I3MarketTreasury', async accounts => {
             assert.fail('An Revert exception must be raised');
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert ONLY THE MARKETPLACE CAN ADD ITSELF TO THE LIST OF THE AVAILABLE MARKETPLACES -- Reason given: ONLY THE MARKETPLACE CAN ADD ITSELF TO THE LIST OF THE AVAILABLE MARKETPLACES.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert ONLY THE MP CAN ADD ITSELF -- Reason given: ONLY THE MP CAN ADD ITSELF.'
             );
         }
     });
@@ -111,8 +111,8 @@ contract('I3MarketTreasury', async accounts => {
             assert.fail('An Revert exception must be raised');
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert THIS ADDRESS IS NOT A REGULAR MARKETPLACE AND DOESN\'T HAVE A TOKEN TYPE -- Reason given: THIS ADDRESS IS NOT A REGULAR MARKETPLACE AND DOESN\'T HAVE A TOKEN TYPE.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert ADDRESS ISN\'T A MP -- Reason given: ADDRESS ISN\'T A MP.',
             );
         }
     });
@@ -138,7 +138,10 @@ contract('I3MarketTreasury', async accounts => {
             await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
             assert.fail("An Revert exception must be raised");
         } catch (e) {
-            assert.strictEqual('Returned error: VM Exception while processing transaction: revert MARKETPLACE CANNOT MINT TO ITSELF -- Reason given: MARKETPLACE CANNOT MINT TO ITSELF.', e.message)
+            assert.strictEqual(
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert MP CANNOT MINT TO ITSELF -- Reason given: MP CANNOT MINT TO ITSELF.'
+            )
         }
     });
 
@@ -234,8 +237,8 @@ contract('I3MarketTreasury', async accounts => {
             await treasury.payment('dummyTransferId', USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert THE DATA CONSUMER DOESN\'T HAVE ENOUGH TOKENS -- Reason given: THE DATA CONSUMER DOESN\'T HAVE ENOUGH TOKENS.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert NOT ENOUGH TOKENS -- Reason given: NOT ENOUGH TOKENS.',
             );
         }
     });
@@ -270,8 +273,8 @@ contract('I3MarketTreasury', async accounts => {
             await treasury.payment('dummyTransferId', USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert THE DATA CONSUMER DOESN\'T HAVE ENOUGH TOKENS -- Reason given: THE DATA CONSUMER DOESN\'T HAVE ENOUGH TOKENS.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert NOT ENOUGH TOKENS -- Reason given: NOT ENOUGH TOKENS.'
             );
         }
     });
@@ -369,12 +372,11 @@ contract('I3MarketTreasury', async accounts => {
 
         try {
             await treasury.setPaid(exchangeInEvents[0].args.transferId, {from: USER_2_ADDRESS});
-
             assert.fail("An Revert exception must be raised");
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert ONLY THE TOKEN RECEIVER CAN SET THE ISPAID TO TRUE -- Reason given: ONLY THE TOKEN RECEIVER CAN SET THE ISPAID TO TRUE.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert ONLY RECEIVER CAN CHANGE ISPAID -- Reason given: ONLY RECEIVER CAN CHANGE ISPAID.',
             );
         }
     });
@@ -416,8 +418,8 @@ contract('I3MarketTreasury', async accounts => {
         } catch (e) {
             assert.fail("Should we cover ourself against the 0x0 address")
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert TRANSACTION DOES NOT EXIST OR WRONG TRANSACTION ID -- Reason given: TRANSACTION DOES NOT EXIST OR WRONG TRANSACTION ID.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert TRANSACTION DOES NOT EXIST OR WRONG TRANSACTION ID -- Reason given: TRANSACTION DOES NOT EXIST OR WRONG TRANSACTION ID.'
             );
         }
     });
@@ -433,8 +435,8 @@ contract('I3MarketTreasury', async accounts => {
             assert.fail("An Revert exception must be raised");
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert ONLY THE TOKEN RECEIVER CAN SET THE ISPAID TO TRUE -- Reason given: ONLY THE TOKEN RECEIVER CAN SET THE ISPAID TO TRUE.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert ONLY RECEIVER CAN CHANGE ISPAID -- Reason given: ONLY RECEIVER CAN CHANGE ISPAID.',
             );
         }
     });
@@ -462,8 +464,8 @@ contract('I3MarketTreasury', async accounts => {
             assert.fail("An Revert exception must be raised");
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert THE CONFLICT APPLICANT MUST BE ONE OF THE TRANSACTION PARTIES -- Reason given: THE CONFLICT APPLICANT MUST BE ONE OF THE TRANSACTION PARTIES.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert APPLICANT MUST BE ON TRANSACTION -- Reason given: APPLICANT MUST BE ON TRANSACTION.'
             );
         }
     });
@@ -479,8 +481,8 @@ contract('I3MarketTreasury', async accounts => {
             assert.fail("An Revert exception must be raised");
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert THE CONFLICT RECIPIENT MUST BE ONE OF THE TRANSACTION PARTIES -- Reason given: THE CONFLICT RECIPIENT MUST BE ONE OF THE TRANSACTION PARTIES.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert RECIPIENT MUST BE ON TRANSACTION -- Reason given: RECIPIENT MUST BE ON TRANSACTION.'
             );
         }
     });
@@ -492,12 +494,11 @@ contract('I3MarketTreasury', async accounts => {
 
         try {
             await treasury.openConflict(exchangeInEvents[0].args.transferId, USER_1_ADDRESS, {from: USER_2_ADDRESS});
-
             assert.fail("An Revert exception must be raised");
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert THE CONFLICT APPLICANT MUST BE ONE OF THE TRANSACTION PARTIES -- Reason given: THE CONFLICT APPLICANT MUST BE ONE OF THE TRANSACTION PARTIES.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert APPLICANT MUST BE ON TRANSACTION -- Reason given: APPLICANT MUST BE ON TRANSACTION.'
             );
         }
     });
@@ -546,8 +547,8 @@ contract('I3MarketTreasury', async accounts => {
             assert.fail("An Revert exception must be raised");
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert ONLY THE ORIGINAL APPLICANT CAN CLOSE THE CONFICT -- Reason given: ONLY THE ORIGINAL APPLICANT CAN CLOSE THE CONFICT.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert ONLY APPLICANT CAN CLOSE THE CONFLICT -- Reason given: ONLY APPLICANT CAN CLOSE THE CONFLICT.'
             );
         }
     });
@@ -565,8 +566,8 @@ contract('I3MarketTreasury', async accounts => {
             assert.fail("An Revert exception must be raised");
         } catch (e) {
             assert.strictEqual(
-                'Returned error: VM Exception while processing transaction: revert ONLY THE ORIGINAL APPLICANT CAN CLOSE THE CONFICT -- Reason given: ONLY THE ORIGINAL APPLICANT CAN CLOSE THE CONFICT.',
-                e.message
+                e.message,
+                'Returned error: VM Exception while processing transaction: revert ONLY APPLICANT CAN CLOSE THE CONFLICT -- Reason given: ONLY APPLICANT CAN CLOSE THE CONFLICT.'
             );
         }
     });
