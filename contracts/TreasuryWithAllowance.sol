@@ -103,7 +103,7 @@ contract TreasuryWithAllowance is I3MarketTreasury {
         @notice Enable or disable approval for a third party ("operator") to manage all of `msg.sender`'s tokens.
         @dev MUST emit the ApprovalForAll event on success.
     */
-    function setApprovalForAll(address /*_operator*/, bool /*_approved*/) override external pure {
+    function setApprovalForAll(address operator, bool approved) public virtual override  {
         // Do this on the wrapped contract directly. We can't do this here
         revert();
     }

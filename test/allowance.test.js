@@ -129,17 +129,18 @@ contract('TreasuryWithAllowance', async accounts => {
     });
 
 
-    it("Given an allowed spender when call allowanceTransfer then the owner has the right amount of tokens", async () => {
+    it("Given an allowed spender when call allowanceTransfer then the users has the right amount of tokens", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         await treasury.exchangeIn('dummyTransferId', OWNER_USER_1, 21, {from: MARKETPLACE_1_ADDRESS});
         await treasury.exchangeIn('dummyTransferId', SPENDER_USER_1, 22, {from: MARKETPLACE_1_ADDRESS});
         await treasury.approve(SPENDER_USER_1, 0, 100, {from: OWNER_USER_1});
 
         await treasury.allowanceTransfer('dummyTransferId', OWNER_USER_1, SPENDER_USER_1, 20, {from: SPENDER_USER_1});
-        const balances = await treasury.balanceOfAddress(OWNER_USER_1, {from: OWNER_USER_1})
+        const user_balances = await treasury.balanceOfAddress(OWNER_USER_1, {from: OWNER_USER_1})
+        const spender_balances = await treasury.balanceOfAddress(SPENDER_USER_1, {from: OWNER_USER_1})
 
-
-        assert.strictEqual(balances[0].toNumber(), 1)
+        assert.strictEqual(user_balances[0].toNumber(), 1)
+        assert.strictEqual(spender_balances[0].toNumber(), 42)
     });
 
 
