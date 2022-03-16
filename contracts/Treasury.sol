@@ -212,8 +212,9 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * in the TokenTransfer object of a transaction, set the isPaid param to true if the payment was also made with fiat money
     */ 
-    function setPaid(string memory _transferId) external payable onlyTheTokenReceiver(_transferId){ 
-        transactions[_transferId].isPaid = true;
+    function setPaid(string memory _transferId, string memory _transferCode) external payable onlyTheTokenReceiver(_transferId){	
+        transactions[_transferId].isPaid = true;	
+        transactions[_transferId].transferCode = _transferCode;	
     }
 
     /*
