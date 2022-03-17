@@ -86,7 +86,7 @@ contract TreasuryWithAllowance is I3MarketTreasury {
         _allowed[from][msg.sender] = _allowed[from][msg.sender] - value;
 
         transactions[transferId] = TokenTransfer(transferId, from, to, value, false, "");
-        emit TokenTransferred(transferId, "payment", to);
+        emit TokenTransferred(transferId, "payment", msg.sender, to);
         return true;
     }
 

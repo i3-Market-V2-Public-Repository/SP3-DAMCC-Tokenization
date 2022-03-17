@@ -24,5 +24,3 @@ exports.TokenTransfer = {
     isPaid: 4,
     transferCode: 5,
 }
-
-

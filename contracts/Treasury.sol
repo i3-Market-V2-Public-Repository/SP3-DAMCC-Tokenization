@@ -58,38 +58,38 @@ contract I3MarketTreasury is ERC1155 {
 
 
     modifier onlySameAddress(address _marketplaceAddress) {
-        require(msg.sender == _marketplaceAddress, "ONLY THE MARKETPLACE CAN ADD ITSELF TO THE LIST OF THE AVAILABLE MARKETPLACES");
+        require(msg.sender == _marketplaceAddress, "ONLY THE MP CAN ADD ITSELF");
         _;
     }
 
     modifier onlyMarketplace(address _marketplaceAddress) {
-        isMarketplace(_marketplaceAddress,"THIS ADDRESS IS NOT A REGULAR MARKETPLACE AND DOESN'T HAVE A TOKEN TYPE");
+        isMarketplace(_marketplaceAddress,"ADDRESS ISN'T A MP");
         _;
     }
 
     modifier validDestination(address _to) {
-        require(msg.sender != _to, "MARKETPLACE CANNOT MINT TO ITSELF");
+        require(msg.sender != _to, "MP CANNOT MINT TO ITSELF");
         _;
     }
 
     modifier onlyTheTokenReceiver(string memory _transferId) {
-        require(transactions[_transferId].toAddress == msg.sender, "ONLY THE TOKEN RECEIVER CAN SET THE ISPAID TO TRUE");
+        require(transactions[_transferId].toAddress == msg.sender, "ONLY RECEIVER CAN CHANGE ISPAID");
         _;
     }
     
     modifier onlyTheApplicant(string memory _transferId) {
-        require(openConflicts[_transferId].applicant == msg.sender, "ONLY THE ORIGINAL APPLICANT CAN CLOSE THE CONFICT");
+        require(openConflicts[_transferId].applicant == msg.sender, "ONLY APPLICANT CAN CLOSE THE CONFLICT");
         _;
     }
 
     modifier onlyNewMarketplaceAddress(address _marketplaceAddress) {
-        require(marketplacesIndex[_marketplaceAddress] == 0, "MARKETPLACE WAS ALREADY ADDED");
+        require(marketplacesIndex[_marketplaceAddress] == 0, "MP ALREADY ADDED");
         _;
     }
     
     modifier onlyPartiesOfTransaction(string memory _transferId, address recipient) {
-        require(msg.sender == transactions[_transferId].toAddress || msg.sender == transactions[_transferId].fromAddress, "THE CONFLICT APPLICANT MUST BE ONE OF THE TRANSACTION PARTIES");
-        require(recipient == transactions[_transferId].toAddress || recipient == transactions[_transferId].fromAddress, "THE CONFLICT RECIPIENT MUST BE ONE OF THE TRANSACTION PARTIES");
+        require(msg.sender == transactions[_transferId].toAddress || msg.sender == transactions[_transferId].fromAddress, "APPLICANT MUST BE ON TRANSACTION");
+        require(recipient == transactions[_transferId].toAddress || recipient == transactions[_transferId].fromAddress, "RECIPIENT MUST BE ON TRANSACTION");
         _;
     }
 
@@ -117,12 +117,12 @@ contract I3MarketTreasury is ERC1155 {
     */
     function exchangeIn(string memory transferId, address _userAddress, uint _tokensAmount) external payable validDestination(_userAddress) { 
         
-        isMarketplace(msg.sender,"THIS ADDRESS IS NOT A REGULAR MARKETPLACE AND DOESN'T HAVE A TOKEN TYPE");
+        isMarketplace(msg.sender,"ADDRESS ISN'T A MP");
         //mint token from Data Marketplace to Data Consumer
         _mint(_userAddress, marketplacesIndex[msg.sender], _tokensAmount, "");
         //create transaction with isPaid param to True as Fiat money payment is already done
         transactions[transferId] = TokenTransfer(transferId, msg.sender, _userAddress, _tokensAmount, true, "");
-        emit TokenTransferred(transferId, "exchange_in", _userAddress, address(0));
+        emit TokenTransferred(transferId, "exchange_in", msg.sender, _userAddress);
     }
 
     /*
@@ -153,7 +153,7 @@ contract I3MarketTreasury is ERC1155 {
         for (uint i = 0; i < _clearingOperations.length; ++i){
             uint amount = _clearingOperations[i].tokenAmount;
             address toMarketplace = _clearingOperations[i].toAddress;
-            isMarketplace(toMarketplace,"THIS ADDRESS IS NOT A REGULAR MARKETPLACE");
+            isMarketplace(toMarketplace,"ADDRESS ISN'T A MP");
             if(amount > minimumClearingThreshold) {
                 super.safeTransferFrom(msg.sender,toMarketplace,marketplacesIndex[toMarketplace], amount, "0x0");
 
@@ -164,19 +164,21 @@ contract I3MarketTreasury is ERC1155 {
         }
     }
 
-    /*
-    * payment function between a Data Consumer and a Data Provider
-    */
-    function payment(string memory transferId, address _dataProvider, uint256 amount) external payable { 
-        
-        uint256[] memory _ids = new uint256[](index);
-        uint256[] memory _amounts = new uint256[](index);
+    /*  
+    * payment function between a Data Consumer and a Data Provider  
+    */  
+    function payment(string memory transferId, address _dataProvider, uint256 amount) external payable {    
+        _transferFrom(msg.sender, _dataProvider, amount);   
+        transactions[transferId] = TokenTransfer(transferId, msg.sender, _dataProvider, amount, false, ""); 
+        emit TokenTransferred(transferId, "payment", msg.sender, _dataProvider);    
+    }   
 
-        //obtains the tokens needed to pay the amount
-        (_ids,_amounts) = configurePayment(amount);
-        super.safeBatchTransferFrom(msg.sender,_dataProvider,_ids,_amounts,"0x0");
-        transactions[transferId] = TokenTransfer(transferId, msg.sender, _dataProvider, getSum(_amounts), false, "");
-        emit TokenTransferred(transferId, "payment", msg.sender, _dataProvider);
+    function _transferFrom(address from, address to, uint256 amount) internal { 
+        uint256[] memory _ids = new uint256[](index);   
+        uint256[] memory _amounts = new uint256[](index);   
+        //obtains the tokens needed to pay the amount   
+        (_ids, _amounts) = configurePayment(from, amount);  
+        super.safeBatchTransferFrom(from, to, _ids, _amounts, "0x0");   
     }
 
     /*
@@ -208,41 +210,37 @@ contract I3MarketTreasury is ERC1155 {
     * Returns a pair with the token ids and the respective amounts to cover the amount required for payment. 
     * Tokens are taken starting from the first token type until the sum is reached
     */
-    function configurePayment(uint256 amount) private view returns (uint256[] memory ids, uint256[] memory amounts){
-
-        uint256[] memory ids_ = new uint256[](index);
-        uint256[] memory amounts_ = new uint256[](index);
-
-        for (uint256 i = 0; i < index; ++i) {
-            uint256 balance = super.balanceOf(msg.sender, i + 1);
-            if (balance != 0) {
-                if (amount > balance) {
-                    ids_[i] = i + 1;
-                    amounts_[i] = balance;
-                    amount = amount - balance;
-                } else if (amount <= balance) {
-                    ids_[i] = i + 1;
-                    amounts_[i] = amount;
-                    amount = 0;
-                    break;
-                }
-            }
-        }
-        require(amount == 0, "THE DATA CONSUMER DOESN'T HAVE ENOUGH TOKENS");
-        return (ids_, amounts_);
+    function configurePayment(address from, uint256 amount) private view returns (uint256[] memory ids, uint256[] memory amounts) { 
+        uint256[] memory mpIds = new uint256[](index);  
+        uint256[] memory mpTokens = new uint256[](index);   
+        for (uint256 i = 0; i < index && amount != 0; ++i) {    
+            uint256 mpBalance = super.balanceOf(from, i + 1);   
+            if (mpBalance != 0) {   
+                mpIds[i] = i + 1;   
+                mpTokens[i] = getMarketplaceNeededTokens(mpBalance, amount);    
+                amount = amount - mpTokens[i];  
+            }   
+        }   
+        require(amount == 0, "NOT ENOUGH TOKENS");  
+        return (mpIds, mpTokens);   
     }
 
-    /*
-    * Returns the sum of the elements in an array
-    */
-    function getSum(uint256[] memory _amounts) private pure returns (uint256){
-        uint i;
-        uint256 sum = 0;
+    function getMarketplaceNeededTokens(uint256 balance, uint256 amount) private pure returns (uint256) {   
+        if (amount > balance) { 
+            return balance; 
+        }   
+        return amount;  
+    }
 
-        for (i = 0; i < _amounts.length; i++) {
-            sum = sum + _amounts[i];
-        }
-        return sum;
+        /*  
+    * Returns the sum of the elements in an array   
+    */  
+    function getSum(uint256[] memory _amounts) private pure returns (uint256){  
+        uint256 sum = 0;    
+        for (uint i = 0; i < _amounts.length; i++) {    
+            sum = sum + _amounts[i];    
+        }   
+        return sum; 
     }
 
     /*
