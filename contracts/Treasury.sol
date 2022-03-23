@@ -53,9 +53,15 @@ contract I3MarketTreasury is ERC1155 {
     address[] public marketplaces;
     uint public index = 0;
 
-    //variable that define the minimum amount accettable to start a clearing operation
+    // variable that define the minimum amount accettable to start a clearing operation
     uint minimumClearingThreshold = 10;
 
+    // address that represent the Community wallet - edits to this variable should be regulated
+    address public communityWallet;
+
+    // fees 
+    uint public communityFee;
+    uint public marketplaceFee;
 
     modifier onlySameAddress(address _marketplaceAddress) {
         require(msg.sender == _marketplaceAddress, "ONLY THE MP CAN ADD ITSELF");
@@ -89,7 +95,7 @@ contract I3MarketTreasury is ERC1155 {
     
     modifier onlyPartiesOfTransaction(string memory _transferId, address recipient) {
         require(msg.sender == transactions[_transferId].toAddress || msg.sender == transactions[_transferId].fromAddress, "APPLICANT MUST BE ON TRANSACTION");
-        require(recipient == transactions[_transferId].toAddress || recipient == transactions[_transferId].fromAddress, "RECIPIENT MUST BE ON TRANSACTION");
+        require(recipient == transactions[_transferId].toAddress || recipient == transactions[_transferId].fromAddress, "APPLICANT MUST BE ON TRANSACTION");
         _;
     }
 
@@ -122,7 +128,7 @@ contract I3MarketTreasury is ERC1155 {
         _mint(_userAddress, marketplacesIndex[msg.sender], _tokensAmount, "");
         //create transaction with isPaid param to True as Fiat money payment is already done
         transactions[transferId] = TokenTransfer(transferId, msg.sender, _userAddress, _tokensAmount, true, "");
-        emit TokenTransferred(transferId, "exchange_in", msg.sender, _userAddress);
+        emit TokenTransferred(transferId, "exchange_in", _userAddress, address(0));
     }
 
     /*
@@ -167,19 +173,42 @@ contract I3MarketTreasury is ERC1155 {
     /*  
     * payment function between a Data Consumer and a Data Provider  
     */  
-    function payment(string memory transferId, address _dataProvider, uint256 amount) external payable {    
-        _transferFrom(msg.sender, _dataProvider, amount);   
-        transactions[transferId] = TokenTransfer(transferId, msg.sender, _dataProvider, amount, false, ""); 
+    function payment(string memory transferId, address _dataProvider, uint256 _amount) external payable {    
+        _transferFrom(msg.sender, _dataProvider, _amount);   
+        transactions[transferId] = TokenTransfer(transferId, msg.sender, _dataProvider, _amount, false, ""); 
         emit TokenTransferred(transferId, "payment", msg.sender, _dataProvider);    
     }   
 
-    function _transferFrom(address from, address to, uint256 amount) internal { 
+    /*  
+    * token transfer function 
+    */  
+    function _transferFrom(address _from, address _to, uint256 _amount) internal { 
         uint256[] memory _ids = new uint256[](index);   
         uint256[] memory _amounts = new uint256[](index);   
         //obtains the tokens needed to pay the amount   
-        (_ids, _amounts) = configurePayment(from, amount);  
-        super.safeBatchTransferFrom(from, to, _ids, _amounts, "0x0");   
+        (_ids, _amounts) = configurePayment(_from, _amount);  
+        super.safeBatchTransferFrom(_from, _to, _ids, _amounts, "0x0");   
     }
+
+    /*  
+    * fees payment function from a Data Consumer to the Community Wallet and the Data Provider Marketplace  
+    */  
+    function feePayment(string memory _transferIdCommunity, string memory _transferIdMarketplace, address _dataProviderMarketplace, uint256 _feeAmount) external payable {  
+
+        uint _amountCommunity = mulDiv(_feeAmount, communityFee, 100);
+        uint _amountMarketplace = _feeAmount - _amountCommunity;
+          
+        // tranfer token to the Community wallet
+        _transferFrom(msg.sender, communityWallet, _amountCommunity);
+        transactions[_transferIdCommunity] = TokenTransfer(_transferIdCommunity, msg.sender, communityWallet, _amountCommunity, false, "");
+        emit TokenTransferred(_transferIdCommunity, "feePayment", msg.sender, communityWallet);    
+
+        // transfer token to the Data Provider Host Marketplace
+        _transferFrom(msg.sender, _dataProviderMarketplace, _amountMarketplace);
+        transactions[_transferIdMarketplace] = TokenTransfer(_transferIdMarketplace, msg.sender, _dataProviderMarketplace, _amountMarketplace, false, ""); 
+        emit TokenTransferred(_transferIdMarketplace, "feePayment", msg.sender, _dataProviderMarketplace);    
+    }   
+
 
     /*
     * exchange out function between a Data Provider and a Data Marketplace
@@ -255,8 +284,8 @@ contract I3MarketTreasury is ERC1155 {
     /*
     * in the TokenTransfer object of a transaction, set the transfer code param 
     */ 
-    function setTransferCode(string memory _transferId, string memory transferCode) external payable onlyTheTokenReceiver(_transferId){ 
-        transactions[_transferId].transferCode = transferCode;
+    function setTransferCode(string memory _transferId, string memory _transferCode) external payable onlyTheTokenReceiver(_transferId){ 
+        transactions[_transferId].transferCode = _transferCode;
     }
 
     /*
@@ -290,6 +319,101 @@ contract I3MarketTreasury is ERC1155 {
     */
     function isMarketplace(address marketplace, string memory message) public view {
         require(marketplacesIndex[marketplace] != 0, message);
+    }
+
+    // cost efficient proportion calculation
+    function mulDiv(
+        uint256 a,
+        uint256 b,
+        uint256 denominator
+    ) internal pure returns (uint256 result) {
+        // 512-bit multiply [prod1 prod0] = a * b
+        // Compute the product mod 2**256 and mod 2**256 - 1
+        // then use the Chinese Remainder Theorem to reconstruct
+        // the 512 bit result. The result is stored in two 256
+        // variables such that product = prod1 * 2**256 + prod0
+        uint256 prod0; // Least significant 256 bits of the product
+        uint256 prod1; // Most significant 256 bits of the product
+        assembly {
+            let mm := mulmod(a, b, not(0))
+            prod0 := mul(a, b)
+            prod1 := sub(sub(mm, prod0), lt(mm, prod0))
+        }
+
+        // Handle non-overflow cases, 256 by 256 division
+        if (prod1 == 0) {
+            require(denominator > 0);
+            assembly {
+                result := div(prod0, denominator)
+            }
+            return result;
+        }
+
+        // Make sure the result is less than 2**256.
+        // Also prevents denominator == 0
+        require(denominator > prod1);
+
+        ///////////////////////////////////////////////
+        // 512 by 256 division.
+        ///////////////////////////////////////////////
+
+        // Make division exact by subtracting the remainder from [prod1 prod0]
+        // Compute remainder using mulmod
+        uint256 remainder;
+        assembly {
+            remainder := mulmod(a, b, denominator)
+        }
+        // Subtract 256 bit number from 512 bit number
+        assembly {
+            prod1 := sub(prod1, gt(remainder, prod0))
+            prod0 := sub(prod0, remainder)
+        }
+
+        // Factor powers of two out of denominator
+        // Compute largest power of two divisor of denominator.
+        // Always >= 1.
+        uint256 twos = denominator & (~denominator + 1);
+        // Divide denominator by power of two
+        assembly {
+            denominator := div(denominator, twos)
+        }
+
+        // Divide [prod1 prod0] by the factors of two
+        assembly {
+            prod0 := div(prod0, twos)
+        }
+        // Shift in bits from prod1 into prod0. For this we need
+        // to flip `twos` such that it is 2**256 / twos.
+        // If twos is zero, then it becomes one
+        assembly {
+            twos := add(div(sub(0, twos), twos), 1)
+        }
+        prod0 |= prod1 * twos;
+
+        // Invert denominator mod 2**256
+        // Now that denominator is an odd number, it has an inverse
+        // modulo 2**256 such that denominator * inv = 1 mod 2**256.
+        // Compute the inverse by starting with a seed that is correct
+        // correct for four bits. That is, denominator * inv = 1 mod 2**4
+        uint256 inv = (3 * denominator) ^ 2;
+        // Now use Newton-Raphson iteration to improve the precision.
+        // Thanks to Hensel's lifting lemma, this also works in modular
+        // arithmetic, doubling the correct bits in each step.
+        inv *= 2 - denominator * inv; // inverse mod 2**8
+        inv *= 2 - denominator * inv; // inverse mod 2**16
+        inv *= 2 - denominator * inv; // inverse mod 2**32
+        inv *= 2 - denominator * inv; // inverse mod 2**64
+        inv *= 2 - denominator * inv; // inverse mod 2**128
+        inv *= 2 - denominator * inv; // inverse mod 2**256
+
+        // Because the division is now exact we can divide by multiplying
+        // with the modular inverse of denominator. This will give us the
+        // correct result modulo 2**256. Since the precoditions guarantee
+        // that the outcome is less than 2**256, this is the final result.
+        // We don't need to compute the high bits of the result and prod1
+        // is no longer required.
+        result = prod0 * inv;
+        return result;
     }
 
 }
