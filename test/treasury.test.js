@@ -453,7 +453,7 @@ contract('I3MarketTreasury', async accounts => {
         assert.strictEqual(transaction[TokenTransfer.transferCode], "Dummy transfer code");
     });
 
-    it('Given a transfer id and a recipient when a NONE PARTIES are in the transaction and call of open conflict emit a revert event', async () => {
+/*    it('Given a transfer id and a recipient when a NONE PARTIES are in the transaction and call of open conflict emit a revert event', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
         const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
@@ -584,6 +584,6 @@ contract('I3MarketTreasury', async accounts => {
         const conflict = await treasury.openConflicts(transferId);
 
         assert.strictEqual(conflict.open, false, "Conflict is not closed");
-    });
+    });*/
 
 });
