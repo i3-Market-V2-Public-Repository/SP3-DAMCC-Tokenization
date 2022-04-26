@@ -12,7 +12,7 @@ exports.getEvents = (result, _type) => {
 
 exports.assertTokenTransfered = (log, message, _address) => {
     assert.strictEqual(log.args.operation, message);
-    assert.strictEqual(log.args._sender, _address);
+    assert.strictEqual(log.args.fromAdd, _address);
 
 }
 

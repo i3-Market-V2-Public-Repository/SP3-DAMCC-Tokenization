@@ -52,7 +52,7 @@ contract I3MarketTreasury is ERC1155 {
     address[] private marketplaces;
     
     // variable that define the minimum amount accettable to start a clearing operation
-    uint private minimumClearingThreshold = 10;
+    uint private minimumClearingThreshold;
 
     // address that represent the Community wallet - edits to this variable should be regulated
     address public communityWallet;

@@ -1,4 +1,5 @@
 const I3MarketTreasury = artifacts.require("I3MarketTreasury");
+const I3MarketConflicts = artifacts.require("I3MarketConflicts");
 const assert = require("assert");
 const helper = require("./helpers");
 const {TokenTransfer, getJSON} = require("./helpers");
@@ -67,20 +68,20 @@ contract('I3MarketTreasury', async accounts => {
     });
 
 
-    it("Given a non exiting marketplace address when call getMarketplaceIndex return", async () => {
-        const index = await treasury.getMarketplaceIndex(MARKETPLACE_1_ADDRESS);
+    it("Given a non exiting marketplace address when call get Marketplace Index return", async () => {
+        const index = await treasury.mpIndex(MARKETPLACE_1_ADDRESS);
         assert.strictEqual(index.toNumber(), 0);
     });
 
-    it("Given an added marketplace address when call getMarketplaceIndex return the Correct index", async () => {
+    it("Given an added marketplace address when call get Marketplace Index return the Correct index", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
 
-        const index = await treasury.getMarketplaceIndex(MARKETPLACE_1_ADDRESS);
+        const index = await treasury.mpIndex(MARKETPLACE_1_ADDRESS);
 
         assert.strictEqual(index.toNumber(), 1);
     });
 
-    it("Given many added marketplace address when call getMarketplaceIndex return the correct index", async () => {
+    it("Given many added marketplace address when call get Marketplace Index return the correct index", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_3_ADDRESS, {from: MARKETPLACE_3_ADDRESS});
@@ -88,18 +89,18 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.addMarketplace(MARKETPLACE_5_ADDRESS, {from: MARKETPLACE_5_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_6_ADDRESS, {from: MARKETPLACE_6_ADDRESS});
 
-        const index = await treasury.getMarketplaceIndex(MARKETPLACE_6_ADDRESS);
+        const index = await treasury.mpIndex(MARKETPLACE_6_ADDRESS);
 
         assert.strictEqual(index.toNumber(), 6);
     });
 
     it("Given a marketplace address when it is added twice return the same index", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const firstIndex = await treasury.getMarketplaceIndex(MARKETPLACE_1_ADDRESS);
+        const firstIndex = await treasury.mpIndex(MARKETPLACE_1_ADDRESS);
         try {
             await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         } catch (e) {
-            const secondIndex = await treasury.getMarketplaceIndex(MARKETPLACE_1_ADDRESS);
+            const secondIndex = await treasury.mpIndex(MARKETPLACE_1_ADDRESS);
             assert.strictEqual(firstIndex.toNumber(), secondIndex.toNumber());
         }
     });
@@ -112,7 +113,7 @@ contract('I3MarketTreasury', async accounts => {
         } catch (e) {
             assert.strictEqual(
                 e.message,
-                'Returned error: VM Exception while processing transaction: revert ADDRESS ISN\'T A MP -- Reason given: ADDRESS ISN\'T A MP.',
+                'Returned error: VM Exception while processing transaction: revert ADD ISN\'T A MP -- Reason given: ADD ISN\'T A MP.',
             );
         }
     });
@@ -195,40 +196,43 @@ contract('I3MarketTreasury', async accounts => {
 
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.addMarketplace(MARKETPLACE_3_ADDRESS, {from: MARKETPLACE_3_ADDRESS});
-        await treasury.addMarketplace(MARKETPLACE_4_ADDRESS, {from: MARKETPLACE_4_ADDRESS});
         await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 2, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 3, {from: MARKETPLACE_3_ADDRESS});
-        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 4, {from: MARKETPLACE_4_ADDRESS});
 
-        await treasury.clearing({from: MARKETPLACE_1_ADDRESS})
+        balance = await treasury.balanceOfAddress(MARKETPLACE_1_ADDRESS);
+        var clearingItems = new Array();
+        balance.forEach(myFunction);       
+        function myFunction(value, index, array) {
+            if(value!=0){
+                clearingItems.push({transferId:index+1,toAdd: MARKETPLACE_2_ADDRESS, tokenAmount:value.words[0]}) 
+            }
+        } 
+        await treasury.clearing(clearingItems, {from: MARKETPLACE_1_ADDRESS});
+
         const balanceMP1 = await treasury.balanceOfAddress(MARKETPLACE_1_ADDRESS);
         const balanceMP2 = await treasury.balanceOfAddress(MARKETPLACE_2_ADDRESS);
-        const balanceMP3 = await treasury.balanceOfAddress(MARKETPLACE_3_ADDRESS);
-        const balanceMP4 = await treasury.balanceOfAddress(MARKETPLACE_4_ADDRESS);
 
-        assert.deepStrictEqual(balanceMP1.map(x => x.toNumber()), [0, 0, 0, 0]);
-        assert.deepStrictEqual(balanceMP2.map(x => x.toNumber()), [0, 2, 0, 0]);
-        assert.deepStrictEqual(balanceMP3.map(x => x.toNumber()), [0, 0, 3, 0]);
-        assert.deepStrictEqual(balanceMP4.map(x => x.toNumber()), [0, 0, 0, 4]);
+        assert.deepStrictEqual(balanceMP1.map(x => x.toNumber()), [0, 0]);
+        assert.deepStrictEqual(balanceMP2.map(x => x.toNumber()), [0, 2]);
     });
 
     it("Given a marketplace that has exchange in token with many marketplaces when call clearing then clearing events should be issued", async () => {
 
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.addMarketplace(MARKETPLACE_3_ADDRESS, {from: MARKETPLACE_3_ADDRESS});
-        await treasury.addMarketplace(MARKETPLACE_4_ADDRESS, {from: MARKETPLACE_4_ADDRESS});
         await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 2, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 3, {from: MARKETPLACE_3_ADDRESS});
-        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 4, {from: MARKETPLACE_4_ADDRESS});
 
-        const result = await treasury.clearing({from: MARKETPLACE_1_ADDRESS});
+        balance = await treasury.balanceOfAddress(MARKETPLACE_1_ADDRESS);
+        var clearingItems = new Array();
+        balance.forEach(myFunction);       
+        function myFunction(value, index, array) {
+            if(value!=0){
+                clearingItems.push({transferId:index+1,toAdd: MARKETPLACE_2_ADDRESS, tokenAmount:value.words[0]}) 
+            }
+        } 
+        const result = await treasury.clearing(clearingItems, {from: MARKETPLACE_1_ADDRESS});
 
         const tokenTransferredEvents = helper.getEvents(result, 'TokenTransferred');
-        helper.assertTokenTransfered(tokenTransferredEvents[0], "clearing", MARKETPLACE_2_ADDRESS);
-        helper.assertTokenTransfered(tokenTransferredEvents[1], "clearing", MARKETPLACE_3_ADDRESS);
-        helper.assertTokenTransfered(tokenTransferredEvents[2], "clearing", MARKETPLACE_4_ADDRESS);
+        helper.assertTokenTransfered(tokenTransferredEvents[0], "clearing", MARKETPLACE_1_ADDRESS);
     });
 
 
@@ -293,7 +297,7 @@ contract('I3MarketTreasury', async accounts => {
         const result = await treasury.payment('dummyTransferId', USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
 
         const paymentEvent = helper.getEvents(result, "TokenTransferred");
-        helper.assertTokenTransfered(paymentEvent[0], "payment", USER_2_ADDRESS);
+        helper.assertTokenTransfered(paymentEvent[0], "payment", USER_1_ADDRESS);
     });
 
 
@@ -322,7 +326,7 @@ contract('I3MarketTreasury', async accounts => {
         const result = await treasury.exchangeOut('dummyTransferId', MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
 
         const exchangeOutEvent = helper.getEvents(result, "TokenTransferred");
-        helper.assertTokenTransfered(exchangeOutEvent[0], "exchange_out", MARKETPLACE_1_ADDRESS);
+        helper.assertTokenTransfered(exchangeOutEvent[0], "exchange_out", USER_1_ADDRESS);
     });
 
     it("Given a data provider with many tokens when call exchange out then send all data provider tokens to the marketplace", async () => {
@@ -382,13 +386,14 @@ contract('I3MarketTreasury', async accounts => {
     });
 
     it('Given a transfer id when a user that is the token receiver call set paid change isPaid to true', async () => {
+
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
-        const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
+        const result = await treasury.exchangeOut('dummyTransferId', MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
+        const exchangeOutEvent = helper.getEvents(result, "TokenTransferred");
 
-        await treasury.setPaid(exchangeInEvents[0].args.transferId, {from: USER_1_ADDRESS});
+        await treasury.setPaid(exchangeOutEvent[0].args.transferId, {from: MARKETPLACE_1_ADDRESS});
 
-        transaction = await treasury.getTransaction(exchangeInEvents[0].args.transferId);
+        transaction = await treasury.getTransaction(exchangeOutEvent[0].args.transferId);
         assert.strictEqual(transaction[TokenTransfer.isPaid], true);
     });
 
@@ -409,6 +414,8 @@ contract('I3MarketTreasury', async accounts => {
 
         assert.fail("THIS CODE GENERATES NEW TRANSACTIONS")
     })
+
+/*
 
     it.skip('Given NON EXISTING transfer id when call setTransferCode then raise a revert', async () => {
         try {
@@ -441,6 +448,7 @@ contract('I3MarketTreasury', async accounts => {
         }
     });
 
+
     it('Given a transfer id and a transfer code when RECEIVER USER call setTransferCode then set the transfer code', async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
@@ -453,137 +461,6 @@ contract('I3MarketTreasury', async accounts => {
         assert.strictEqual(transaction[TokenTransfer.transferCode], "Dummy transfer code");
     });
 
-/*    it('Given a transfer id and a recipient when a NONE PARTIES are in the transaction and call of open conflict emit a revert event', async () => {
-        await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
-        const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
-
-        try {
-            await treasury.openConflict(exchangeInEvents[0].args.transferId, MARKETPLACE_2_ADDRESS, {from: USER_2_ADDRESS});
-
-            assert.fail("An Revert exception must be raised");
-        } catch (e) {
-            assert.strictEqual(
-                e.message,
-                'Returned error: VM Exception while processing transaction: revert APPLICANT MUST BE ON TRANSACTION -- Reason given: APPLICANT MUST BE ON TRANSACTION.'
-            );
-        }
-    });
-
-    it('Given a transfer id and a recipient when the RECIPIENT IS NOT in the transaction and call of open conflict emit a revert event', async () => {
-        await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
-        const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
-
-        try {
-            await treasury.openConflict(exchangeInEvents[0].args.transferId, MARKETPLACE_2_ADDRESS, {from: USER_1_ADDRESS});
-
-            assert.fail("An Revert exception must be raised");
-        } catch (e) {
-            assert.strictEqual(
-                e.message,
-                'Returned error: VM Exception while processing transaction: revert RECIPIENT MUST BE ON TRANSACTION -- Reason given: RECIPIENT MUST BE ON TRANSACTION.'
-            );
-        }
-    });
-
-    it('Given a transfer id and a recipient when the APPLICANT IS NOT in the transaction and call of open conflict emit a revert event', async () => {
-        await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
-        const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
-
-        try {
-            await treasury.openConflict(exchangeInEvents[0].args.transferId, USER_1_ADDRESS, {from: USER_2_ADDRESS});
-            assert.fail("An Revert exception must be raised");
-        } catch (e) {
-            assert.strictEqual(
-                e.message,
-                'Returned error: VM Exception while processing transaction: revert APPLICANT MUST BE ON TRANSACTION -- Reason given: APPLICANT MUST BE ON TRANSACTION.'
-            );
-        }
-    });
-
-    it('Given a transfer id and a recipient when the APPLICANT is the sender in the transaction and call of open conflict the conflict should be opened', async () => {
-        await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
-        const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
-        const transferId = exchangeInEvents[0].args.transferId;
-
-        await treasury.openConflict(transferId, USER_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const conflict = await treasury.openConflicts(transferId);
-
-        assert.strictEqual(conflict.transferId, transferId, "Different transfer id")
-        assert.strictEqual(conflict.applicant, MARKETPLACE_1_ADDRESS, "Different applicant")
-        assert.strictEqual(conflict.recipient, USER_1_ADDRESS, "Different recipient")
-        assert.strictEqual(conflict.open, true, "Conflict is not open")
-    });
-
-    it('Given a transfer id and a recipient when the APPLICANT is the receiver in the transaction and call of open conflict the conflict should be opened', async () => {
-        await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
-        const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
-        const transferId = exchangeInEvents[0].args.transferId;
-
-        await treasury.openConflict(transferId, MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
-        const conflict = await treasury.openConflicts(transferId);
-
-        assert.strictEqual(conflict.transferId, transferId, "Different transfer id");
-        assert.strictEqual(conflict.applicant, USER_1_ADDRESS, "Different applicant");
-        assert.strictEqual(conflict.recipient, MARKETPLACE_1_ADDRESS, "Different recipient");
-        assert.strictEqual(conflict.open, true, "Conflict is not open");
-    });
-
-
-    it("Given an open conflict when a NON party USER call close conflict then raise a revert", async () => {
-        await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
-        const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
-        const transferId = exchangeInEvents[0].args.transferId;
-        await treasury.openConflict(transferId, MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
-        await treasury.openConflicts(transferId);
-
-        try {
-            await treasury.closeConflict(transferId, {from: USER_2_ADDRESS});
-            assert.fail("An Revert exception must be raised");
-        } catch (e) {
-            assert.strictEqual(
-                e.message,
-                'Returned error: VM Exception while processing transaction: revert ONLY APPLICANT CAN CLOSE THE CONFLICT -- Reason given: ONLY APPLICANT CAN CLOSE THE CONFLICT.'
-            );
-        }
-    });
-
-    it("Given an open conflict when the RECIPIENT USER call close conflict then raise a revert", async () => {
-        await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
-        const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
-        const transferId = exchangeInEvents[0].args.transferId;
-        await treasury.openConflict(transferId, MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
-        await treasury.openConflicts(transferId);
-
-        try {
-            await treasury.closeConflict(transferId, {from: MARKETPLACE_1_ADDRESS});
-            assert.fail("An Revert exception must be raised");
-        } catch (e) {
-            assert.strictEqual(
-                e.message,
-                'Returned error: VM Exception while processing transaction: revert ONLY APPLICANT CAN CLOSE THE CONFLICT -- Reason given: ONLY APPLICANT CAN CLOSE THE CONFLICT.'
-            );
-        }
-    });
-
-    it("Given an open conflict when the APPLICANT USER call close conflict then close the conflict", async () => {
-        await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
-        const result = await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 20, {from: MARKETPLACE_1_ADDRESS});
-        const exchangeInEvents = helper.getEvents(result, "TokenTransferred");
-        const transferId = exchangeInEvents[0].args.transferId;
-        await treasury.openConflict(transferId, MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
-        await treasury.openConflicts(transferId);
-
-        await treasury.closeConflict(transferId, {from: USER_1_ADDRESS});
-        const conflict = await treasury.openConflicts(transferId);
-
-        assert.strictEqual(conflict.open, false, "Conflict is not closed");
-    });*/
+*/
 
 });
