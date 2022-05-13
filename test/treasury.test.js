@@ -4,6 +4,8 @@ const assert = require("assert");
 const helper = require("./helpers");
 const {TokenTransfer, getJSON} = require("./helpers");
 
+
+
 contract('I3MarketTreasury', async accounts => {
 
     let treasury;
@@ -32,6 +34,15 @@ contract('I3MarketTreasury', async accounts => {
     beforeEach(async () => {
         treasury = await I3MarketTreasury.new();
     });
+
+    async function balanceOfAddress(contract, address) {
+        const balances = new Array();;
+        const index = await contract.index();
+        for (let i = 0; i < index; ++i) {
+                balances[i] = await contract.balanceOf(address, i + 1);
+        }
+        return balances;
+    }
 
     it("Given a marketplace when try to add it twice return a revert event", async () => {
         try {
@@ -130,7 +141,7 @@ contract('I3MarketTreasury', async accounts => {
 
         assert.strictEqual(event, "TokenTransferred", "Expected TokenTransferred event")
         assert.strictEqual(operation, "exchange_in", "Expected TokenTransferred event send operation")
-        assert.strictEqual(_user_address, USER_1_ADDRESS, "Expected TokenTransferred event send user_address")
+        assert.strictEqual(_user_address, MARKETPLACE_1_ADDRESS, "Expected TokenTransferred event send marketplace address")
     });
 
     it("Given a marketplace address when a marketplace exchange in token to itself return a revert error event", async () => {
@@ -147,7 +158,7 @@ contract('I3MarketTreasury', async accounts => {
     });
 
     it("Given a user with NO balance when call balance of returns an empty array", async () => {
-        const balances = await treasury.balanceOfAddress(USER_1_ADDRESS);
+        const balances = await balanceOfAddress(treasury, USER_1_ADDRESS);
         assert.strictEqual(balances.length, 0);
     });
 
@@ -155,7 +166,7 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         await treasury.exchangeIn('dummyTransferId', USER_1_ADDRESS, 100, {from: MARKETPLACE_1_ADDRESS});
 
-        const balances = await treasury.balanceOfAddress(USER_1_ADDRESS);
+        const balances = await balanceOfAddress(treasury, USER_1_ADDRESS);    
 
         assert.strictEqual(balances.length, 1);
         assert.strictEqual(balances[0].toNumber(), 100);
@@ -171,7 +182,7 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 102, {from: MARKETPLACE_4_ADDRESS});
         await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 103, {from: MARKETPLACE_6_ADDRESS});
 
-        const balances = await treasury.balanceOfAddress(USER_1_ADDRESS);
+        const balances = await balanceOfAddress(treasury, USER_1_ADDRESS);
 
         assert.strictEqual(balances.length, 4);
         assert.strictEqual(balances[0].toNumber(), 100);
@@ -187,7 +198,7 @@ contract('I3MarketTreasury', async accounts => {
         await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 102, {from: MARKETPLACE_1_ADDRESS});
 
         await treasury.exchangeIn("dummyTransferId", USER_1_ADDRESS, 103, {from: MARKETPLACE_1_ADDRESS});
-        const balances = await treasury.balanceOfAddress(USER_1_ADDRESS);
+        const balances = await balanceOfAddress(treasury, USER_1_ADDRESS);
 
         assert.strictEqual(balances[0].toNumber(), 406);
     });
@@ -196,9 +207,9 @@ contract('I3MarketTreasury', async accounts => {
 
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 2, {from: MARKETPLACE_2_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 12, {from: MARKETPLACE_2_ADDRESS});
 
-        balance = await treasury.balanceOfAddress(MARKETPLACE_1_ADDRESS);
+        balance = await balanceOfAddress(treasury, MARKETPLACE_1_ADDRESS); 
         var clearingItems = new Array();
         balance.forEach(myFunction);       
         function myFunction(value, index, array) {
@@ -208,20 +219,20 @@ contract('I3MarketTreasury', async accounts => {
         } 
         await treasury.clearing(clearingItems, {from: MARKETPLACE_1_ADDRESS});
 
-        const balanceMP1 = await treasury.balanceOfAddress(MARKETPLACE_1_ADDRESS);
-        const balanceMP2 = await treasury.balanceOfAddress(MARKETPLACE_2_ADDRESS);
+        const balanceMP1 = await balanceOfAddress(treasury, MARKETPLACE_1_ADDRESS); 
+        const balanceMP2 = await balanceOfAddress(treasury, MARKETPLACE_2_ADDRESS); 
 
         assert.deepStrictEqual(balanceMP1.map(x => x.toNumber()), [0, 0]);
-        assert.deepStrictEqual(balanceMP2.map(x => x.toNumber()), [0, 2]);
+        assert.deepStrictEqual(balanceMP2.map(x => x.toNumber()), [0, 12]);
     });
 
     it("Given a marketplace that has exchange in token with many marketplaces when call clearing then clearing events should be issued", async () => {
 
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
         await treasury.addMarketplace(MARKETPLACE_2_ADDRESS, {from: MARKETPLACE_2_ADDRESS});
-        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 2, {from: MARKETPLACE_2_ADDRESS});
+        await treasury.exchangeIn('dummyTransferId', MARKETPLACE_1_ADDRESS, 12, {from: MARKETPLACE_2_ADDRESS});
 
-        balance = await treasury.balanceOfAddress(MARKETPLACE_1_ADDRESS);
+        balance = await balanceOfAddress(treasury, MARKETPLACE_1_ADDRESS); 
         var clearingItems = new Array();
         balance.forEach(myFunction);       
         function myFunction(value, index, array) {
@@ -229,9 +240,11 @@ contract('I3MarketTreasury', async accounts => {
                 clearingItems.push({transferId:index+1,toAdd: MARKETPLACE_2_ADDRESS, tokenAmount:value.words[0]}) 
             }
         } 
+
         const result = await treasury.clearing(clearingItems, {from: MARKETPLACE_1_ADDRESS});
 
         const tokenTransferredEvents = helper.getEvents(result, 'TokenTransferred');
+        console.log("AAAAAAAAAAAAAAAAAAA   "+ tokenTransferredEvents[0]);
         helper.assertTokenTransfered(tokenTransferredEvents[0], "clearing", MARKETPLACE_1_ADDRESS);
     });
 
@@ -313,8 +326,8 @@ contract('I3MarketTreasury', async accounts => {
 
         await treasury.payment('dummyTransferId', USER_2_ADDRESS, 20, {from: USER_1_ADDRESS});
 
-        const consumerBalance = await treasury.balanceOfAddress(USER_1_ADDRESS);
-        const providerBalance = await treasury.balanceOfAddress(USER_2_ADDRESS);
+        const consumerBalance = await balanceOfAddress(treasury, USER_1_ADDRESS); 
+        const providerBalance = await balanceOfAddress(treasury, USER_2_ADDRESS); 
 
         assert.deepStrictEqual(consumerBalance.map(balance => balance.toNumber()), [0, 0, 4, 5]);
         assert.deepStrictEqual(providerBalance.map(balance => balance.toNumber()), [8, 9, 3, 0]);
@@ -341,8 +354,8 @@ contract('I3MarketTreasury', async accounts => {
 
         await treasury.exchangeOut('dummyTransferId', MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
 
-        const providerBalance = await treasury.balanceOfAddress(USER_1_ADDRESS);
-        const marketplaceBalance = await treasury.balanceOfAddress(MARKETPLACE_1_ADDRESS);
+        const providerBalance = await balanceOfAddress(treasury, USER_1_ADDRESS);
+        const marketplaceBalance = await balanceOfAddress(treasury, MARKETPLACE_1_ADDRESS);
 
         assert.deepStrictEqual(providerBalance.map(balance => balance.toNumber()), [0, 0, 0, 0]);
         assert.deepStrictEqual(marketplaceBalance.map(balance => balance.toNumber()), [8, 9, 7, 5]);
@@ -353,18 +366,19 @@ contract('I3MarketTreasury', async accounts => {
         const result = await treasury.exchangeOut('dummyTransferId', MARKETPLACE_1_ADDRESS, {from: USER_1_ADDRESS});
         const exchangeOutEvents = helper.getEvents(result, "TokenTransferred");
 
-        const transaction = await treasury.getTransaction(exchangeOutEvents[0].args.transferId);
+        const transaction = await treasury.txs(exchangeOutEvents[0].args.transferId);
 
         assert.strictEqual(
             helper.getJSON(transaction),
-            helper.getJSON([
-                exchangeOutEvents[0].args.transferId,
-                USER_1_ADDRESS,
-                MARKETPLACE_1_ADDRESS,
-                "0",
-                false,
-                ""
-            ])
+            helper.getJSON({
+                0:exchangeOutEvents[0].args.transferId,
+                1:USER_1_ADDRESS,
+                2:MARKETPLACE_1_ADDRESS,
+                3:"0",
+                4:false,
+                5:"",
+                "transferId":"dummyTransferId","fromAdd":"0x7550b44a38E0EB725C526d743cba04b89b1e284B","toAdd":"0xEe201bc01255e0dB399790d3957CFf5E63d2886e","tokenAmount":"0","isPaid":false,"transferCode":""
+            })
         );
     });
 
@@ -393,7 +407,7 @@ contract('I3MarketTreasury', async accounts => {
 
         await treasury.setPaid(exchangeOutEvent[0].args.transferId, {from: MARKETPLACE_1_ADDRESS});
 
-        transaction = await treasury.getTransaction(exchangeOutEvent[0].args.transferId);
+        transaction = await treasury.txs(exchangeOutEvent[0].args.transferId);
         assert.strictEqual(transaction[TokenTransfer.isPaid], true);
     });
 

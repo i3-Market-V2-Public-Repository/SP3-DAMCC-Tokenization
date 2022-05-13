@@ -34,6 +34,14 @@ contract('TreasuryWithAllowance', async accounts => {
         treasury = await TreasuryWithAllowance.new();
     });
 
+    async function balanceOfAddress(contract, address) {
+        const balances = new Array();;
+        const index = await contract.index();
+        for (let i = 0; i < index; ++i) {
+                balances[i] = await contract.balanceOf(address, i + 1);
+        }
+        return balances;
+    }
 
     it("Given an owner and a spender with no approve when allowance is called then return 0", async () => {
         await treasury.addMarketplace(MARKETPLACE_1_ADDRESS, {from: MARKETPLACE_1_ADDRESS});
@@ -136,8 +144,8 @@ contract('TreasuryWithAllowance', async accounts => {
         await treasury.approve(SPENDER_USER_1, 0, 100, {from: OWNER_USER_1});
 
         await treasury.allowanceTransfer('dummyTransferId', OWNER_USER_1, SPENDER_USER_1, 20, {from: SPENDER_USER_1});
-        const user_balances = await treasury.balanceOfAddress(OWNER_USER_1, {from: OWNER_USER_1})
-        const spender_balances = await treasury.balanceOfAddress(SPENDER_USER_1, {from: OWNER_USER_1})
+        const user_balances = await balanceOfAddress(treasury, OWNER_USER_1)
+        const spender_balances = await balanceOfAddress(treasury, SPENDER_USER_1)
 
         assert.strictEqual(user_balances[0].toNumber(), 1)
         assert.strictEqual(spender_balances[0].toNumber(), 42)

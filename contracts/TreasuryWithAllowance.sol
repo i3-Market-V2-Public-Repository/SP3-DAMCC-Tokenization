@@ -27,14 +27,6 @@ contract TreasuryWithAllowance is I3MarketTreasury {
     }
 
     /**
-     * @dev Emitted when `value` tokens are moved from one account (`from`) to
-     * another (`to`).
-     *
-     * Note that `value` may be zero.
-     */
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    /**
      * @dev Emitted when the allowance of a `spender` for an `owner` is set by
      * a call to {approve}. `value` is the new allowance.
      */
@@ -65,7 +57,7 @@ contract TreasuryWithAllowance is I3MarketTreasury {
         require(spender != address(0));
 
         _allowed[msg.sender][spender] = value;
-        emit Approval(msg.sender, spender, currentValue, value);
+        //emit Approval(msg.sender, spender, currentValue, value);
         return true;
     }
 
@@ -86,7 +78,7 @@ contract TreasuryWithAllowance is I3MarketTreasury {
         _allowed[from][msg.sender] = _allowed[from][msg.sender] - value;
 
         txs[transferId] = TokenTransfer(transferId, from, to, value, false, "");
-        emit TokenTransferred(transferId, "payment", msg.sender, to);
+        //emit TokenTransferred(transferId, "payment", msg.sender, to);
         return true;
     }
 
@@ -99,7 +91,7 @@ contract TreasuryWithAllowance is I3MarketTreasury {
         return _allowed[account][operator] > 0;
     }
 
-     /**
+    /**
         @notice Enable or disable approval for a third party ("operator") to manage all of `msg.sender`'s tokens.
         @dev MUST emit the ApprovalForAll event on success.
     */
